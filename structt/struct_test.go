@@ -6,7 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"git.rpjosh.de/RPJosh/ddl-parser"
+	"git.rpjosh.de/RPJosh/go-ddl-parser"
+
 	"github.com/google/go-cmp/cmp"
 )
 

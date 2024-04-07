@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"git.rpjosh.de/RPJosh/ddl-parser"
+	"git.rpjosh.de/RPJosh/go-ddl-parser"
+
 	"git.rpjosh.de/RPJosh/go-logger"
 )
 

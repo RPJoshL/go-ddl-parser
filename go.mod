@@ -1,4 +1,4 @@
-module git.rpjosh.de/RPJosh/ddl-parser
+module git.rpjosh.de/RPJosh/go-ddl-parser
 
 go 1.22.1
 
