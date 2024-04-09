@@ -280,7 +280,7 @@ func ConnectToMariadb(t *testing.T) *sql.DB {
 }
 
 // createMariadbTable creates a table with the provided column configuration
-// in statementand returns the created table name
+// in statement and returns the created table name
 func createMariadbTable(db *sql.DB, statement string) (string, error) {
 	name, _ := GenerateRandomString(8)
 	name = "ddl_test_" + name

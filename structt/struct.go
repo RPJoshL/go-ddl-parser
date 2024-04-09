@@ -4,9 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"regexp"
 	"sort"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"git.rpjosh.de/RPJosh/go-ddl-parser"
 
@@ -114,6 +117,13 @@ func CreateStructs(conf *StructConfig, tables []*ddl.Table) error {
 			return fmt.Errorf("failed to write file %q: %s", tblConfig.Path, err)
 		}
 		f.Close()
+
+		// Lint go file
+		cmd := exec.Command("go", "fmt", tblConfig.Path)
+		if err := cmd.Run(); err != nil {
+			logger.Warning("Failed to run go fmt: %s", err)
+		}
+		cmd.Wait()
 	}
 
 	return nil
@@ -142,6 +152,24 @@ func GetFieldName(fieldName string) string {
 	}
 
 	return rtc
+}
+
+// GetJsonName returns the json key value for the provided fildName of
+// the database.
+// The json keys are CamelCased
+func GetJsonName(fieldName string) string {
+	structField := GetFieldName(fieldName)
+
+	// Lowercase the first character for json
+	r, size := utf8.DecodeRuneInString(structField)
+	if r == utf8.RuneError && size <= 1 {
+		return structField
+	}
+	lc := unicode.ToLower(r)
+	if r == lc {
+		return structField
+	}
+	return string(lc) + structField[size:]
 }
 
 // findTableConfig returns a specific table configuration for the table
@@ -215,7 +243,8 @@ func (c *constructor) getGoFile(existingContent string, tbl *ddl.Table, tblConfi
 		}
 
 		fieldName := GetFieldName(col.Name)
-		rtc += fmt.Sprintf("\t%s %s `%s:\"%s\"`\n", fieldName, dataType, ColumnTagId, tags.ToTag())
+		jsonName := GetJsonName(col.Name)
+		rtc += fmt.Sprintf("\t%s %s `json:\"%s\" %s:\"%s\"`\n", fieldName, dataType, jsonName, ColumnTagId, tags.ToTag())
 		columns += fmt.Sprintf("\t %s_%s string = \"%s\"\n", tableName, fieldName, fieldName)
 	}
 
@@ -235,7 +264,7 @@ func (c *constructor) getGoFile(existingContent string, tbl *ddl.Table, tblConfi
 		Schema: tbl.Schema,
 		Table:  tbl.Name,
 	}
-	rtc += fmt.Sprintf("\t%s any `%s:\"%s\"`\n", MetadataFieldName, MetadataTagId, metaData.ToTag())
+	rtc += fmt.Sprintf("\t%s any `json:\"-\" %s:\"%s\"`\n", MetadataFieldName, MetadataTagId, metaData.ToTag())
 
 	// Add closing line
 	rtc += "}\n"
@@ -243,7 +272,7 @@ func (c *constructor) getGoFile(existingContent string, tbl *ddl.Table, tblConfi
 
 	// Add package header if no file exists already
 	if existingContent == "" {
-		header := fmt.Sprintf("package %s\n", tblConfig.PackageName)
+		header := fmt.Sprintf("package %s\n\n", tblConfig.PackageName)
 		importStr := ""
 		if len(imports) != 0 {
 			importStr = "import (\n"
@@ -253,9 +282,9 @@ func (c *constructor) getGoFile(existingContent string, tbl *ddl.Table, tblConfi
 			importStr += ")\n"
 		}
 
-		rtc = header + importStr + rtc + columns
+		rtc = header + importStr + "\n" + rtc + columns
 	} else {
-		// @TODO merge file...
+		rtc = c.patchFile(existingContent, rtc+columns, tbl, tblConfig, imports)
 	}
 
 	return rtc
@@ -277,9 +306,9 @@ func (c *constructor) getDataType(column *ddl.Column, tblConfig *TableConfig, ta
 		case ddl.StringType:
 			return "sql.NullString", "database/sql"
 		case ddl.IntType:
-			return "sql.NullInt", "database/sql"
+			return "sql.NullInt64", "database/sql"
 		case ddl.DoubleType:
-			return "sql.NullFloat", "database/sql"
+			return "sql.NullFloat64", "database/sql"
 		case ddl.DateType:
 			return "sql.NullTime", "database/sql"
 		}
@@ -291,7 +320,7 @@ func (c *constructor) getDataType(column *ddl.Column, tblConfig *TableConfig, ta
 	case ddl.IntType:
 		return "int", ""
 	case ddl.DoubleType:
-		return "float", ""
+		return "float64", ""
 	case ddl.DateType:
 		return "time.Time", "time"
 	}
@@ -397,7 +426,7 @@ func (c *constructor) patchFile(existingContent string, newStruct string, tbl *d
 
 	if reg.MatchString(existingContent) {
 		// Replace content
-		return reg.ReplaceAllString(existingContent, newStruct+"\n")
+		return reg.ReplaceAllString(existingContent, newStruct)
 	} else {
 		// Append content
 		return existingContent + "\n" + newStruct
@@ -413,11 +442,12 @@ func (c *constructor) patchImports(existingContent string, imports map[string]bo
 	reg := regexp.MustCompile(`"([^"]+)"`)
 
 	var importStart, importEnd int
+	importFound := true
 	// Find any existing import clause within the first 5 lines
 	for i, line := range strings.Split(existingContent, "\n") {
 		// No import found
 		if i > 5 && importStart == 0 {
-			return existingContent, nil
+			importFound = false
 		}
 
 		// Trim any whitespace for import
@@ -479,6 +509,22 @@ func (c *constructor) patchImports(existingContent string, imports map[string]bo
 		newImport += fmt.Sprintf("\t"+`"%s"`+"\n", k)
 	}
 	newImport += ")"
+
+	// We didn't found an existing import statment yet that we could replace
+	if !importFound {
+		lines := strings.Split(existingContent, "\n")
+
+		// Only a single line -> add it directly below
+		if len(lines) <= 1 {
+			lines = append(lines, "")
+			lines = append(lines, strings.Split(newImport, "\n")...)
+		} else {
+			// Insert it into existing, empty line
+			return replaceLines(existingContent, 1, 1, strings.Split("\n"+newImport, "\n")), nil
+		}
+
+		return strings.Join(lines, "\n"), nil
+	}
 
 	// Replace import string
 	return replaceLines(existingContent, importStart, importEnd, strings.Split(newImport, "\n")), nil

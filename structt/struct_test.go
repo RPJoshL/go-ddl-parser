@@ -393,6 +393,7 @@ func TestPatchFilePatchSelf(t *testing.T) {
 	// Replace a single column ID to test some change.
 	// WithUnder -> ReplacedColumn
 	expected = strings.ReplaceAll(expected, "WithUnder", "ReplacedColumn")
+	expected = strings.ReplaceAll(expected, "withUnder", "replacedColumn")
 	expected = strings.ReplaceAll(expected, "with_under", "replaced_column")
 	tbl.Columns[1].Name = "replaced_column"
 
@@ -429,13 +430,13 @@ func replaceWhitespaces(val string) string {
 // getStructTag returns the tag for a struct to append to.
 // We already tested the struct tags in another test!
 func getStructTag(col *ddl.Column) string {
-	tagStart := "`" + ColumnTagId + ":\""
+	tagStart := "`json:\"" + GetJsonName(col.Name) + "\" " + ColumnTagId + ":\""
 	tagEnd := "\"`"
 
 	return tagStart + GetColumnTag(col).ToTag() + tagEnd
 }
 func getMetadataTag(tbl *ddl.Table) string {
-	tagStart := "`" + MetadataTagId + ":\""
+	tagStart := "`json:\"-\" " + MetadataTagId + ":\""
 	tagEnd := "\"`"
 
 	m := &MetadataTag{

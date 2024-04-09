@@ -70,7 +70,7 @@ func (s *Mariadb) GetTable(schema, name string) (*Table, error) {
 			c.IS_NULLABLE,
 			c.DATA_TYPE,
 			c.COLUMN_TYPE,
-			COALESCE(c.CHARACTER_MAXIMUM_LENGTH, c.NUMERIC_PRECISION, c.DATETIME_PRECISION),
+			COALESCE(c.CHARACTER_MAXIMUM_LENGTH, c.NUMERIC_PRECISION, c.DATETIME_PRECISION, 0),
 			c.COLUMN_KEY,
 			c.COLUMN_COMMENT,
 			c.extra,
@@ -142,6 +142,7 @@ func (s *Mariadb) GetTables(schema string) ([]*Table, error) {
     		t.TABLE_NAME
 		FROM information_schema.tables t 
 		WHERE t.table_schema = ?
+		ORDER BY t.TABLE_NAME ASC
 	`
 	rows, err := s.db.Query(sql, schema)
 	if err != nil {
