@@ -106,8 +106,8 @@ type MyTableNameTab struct {
 }
 // MyTableNameTab
 const (
-	MyTableNameTab_Id string = "Id"
-	MyTableNameTab_WithUnder string = "WithUnder"
+	MyTableNameTab_Id string = "Id|here_is_me.my_table_name.id"
+	MyTableNameTab_WithUnder string = "WithUnder|here_is_me.my_table_name.with_under"
 )
 `
 	goFile := c.getGoFile("", table, tableConfig)
@@ -258,7 +258,7 @@ func TestRelationshipOneToMany(t *testing.T) {
 	}
 
 	// Expecting 1:1 reference to struct
-	dt, _ := c.getOneToMany(tableConfig2, tables[1])
+	dt, _, _ := c.getOneToMany(tableConfig2, tables[1])
 	expectedTag := &ColumnTag{
 		PointedKeyReference: "here_is_me.workout_details.workout_id",
 	}

@@ -245,11 +245,20 @@ func (c *constructor) getGoFile(existingContent string, tbl *ddl.Table, tblConfi
 		fieldName := GetFieldName(col.Name)
 		jsonName := GetJsonName(col.Name)
 		rtc += fmt.Sprintf("\t%s %s `json:\"%s\" %s:\"%s\"`\n", fieldName, dataType, jsonName, ColumnTagId, tags.ToTag())
-		columns += fmt.Sprintf("\t %s_%s string = \"%s\"\n", tableName, fieldName, fieldName)
+
+		// We also add the full reference to the column inside the string value.
+		// It's needed to reference it without information of the table (which we can't get
+		// with constants and no support for package reflection)
+		identifier := tbl.Name + "." + col.Name
+		if tbl.Schema != "" {
+			identifier = tbl.Schema + "." + identifier
+		}
+
+		columns += fmt.Sprintf("\t %s_%s string = \"%s|%s\"\n", tableName, fieldName, fieldName, identifier)
 	}
 
 	// Add foreign key columns
-	rtcAdd, importsAdd := c.getOneToMany(tblConfig, tbl)
+	rtcAdd, columnsAdd, importsAdd := c.getOneToMany(tblConfig, tbl)
 	if rtcAdd != "" {
 		rtc += rtcAdd
 		for _, imp := range importsAdd {
@@ -258,6 +267,7 @@ func (c *constructor) getGoFile(existingContent string, tbl *ddl.Table, tblConfi
 			}
 		}
 	}
+	columns += columnsAdd
 
 	// Add metadata tag
 	metaData := &MetadataTag{
@@ -293,7 +303,7 @@ func (c *constructor) getGoFile(existingContent string, tbl *ddl.Table, tblConfi
 // getDataType returns the data type to use for the column as a string expression
 // and the extra imports required for this data type.
 // The tags my be updated within this function
-func (c *constructor) getDataType(column *ddl.Column, tblConfig *TableConfig, tags *ColumnTag) (name string, imp string) {
+func (c *constructor) getDataType(column *ddl.Column, tblConfig *TableConfig, _ *ColumnTag) (name string, imp string) {
 
 	// Find 1:1 relationship
 	if oneToOne := c.findOneToOne(column, tblConfig); oneToOne != "" {
@@ -374,13 +384,12 @@ func (c *constructor) findOneToOne(column *ddl.Column, tblConfig *TableConfig) s
 // other tables to this table.
 // It returns an empty string if no relationship was found or it's disable in the config.
 // Otherwise this function returns any additional fields to add to the struct with it's required imports
-func (c *constructor) getOneToMany(tblConfig *TableConfig, tbl *ddl.Table) (fields string, imp []string) {
-	rtc := ""
+func (c *constructor) getOneToMany(tblConfig *TableConfig, tbl *ddl.Table) (rtc string, constValues string, imp []string) {
 	imports := []string{}
 
 	// The user explicity has to enable this feature
 	if !tblConfig.IncludePointedStructs {
-		return rtc, imports
+		return rtc, constValues, imports
 	}
 
 	// Loop through every table and column and find any foreign key to this table
@@ -397,12 +406,21 @@ func (c *constructor) getOneToMany(tblConfig *TableConfig, tbl *ddl.Table) (fiel
 					PointedKeyReference: t.Schema + "." + t.Name + "." + c.Name,
 				}
 				rtc += fmt.Sprintf("\t%s []*%s `%s:\"%s\"`\n", GetFieldName(t.Name), tblName, ColumnTagId, tag.ToTag())
+
+				// We also add the full reference to the column inside the string value.
+				fieldNameRoot := GetFieldName(t.Name)
+				identifier := tbl.Name + "." + fieldNameRoot
+				if tbl.Schema != "" {
+					identifier = tbl.Schema + "." + identifier
+				}
+
+				constValues += fmt.Sprintf("\t %s_%s string = \"%s|#%s\"\n", GetFieldName(tbl.Name)+tblConfig.Suffix, fieldNameRoot, fieldNameRoot, identifier)
 			}
 		}
 	}
 
 	// No relation found
-	return rtc, imports
+	return rtc, constValues, imports
 }
 
 // patchFile patches the content of an existing file with the new struct.
@@ -499,7 +517,7 @@ func (c *constructor) patchImports(existingContent string, imports map[string]bo
 
 	// Build a new import string. We wan't to sort it
 	keys := make([]string, 0)
-	for k, _ := range imports {
+	for k := range imports {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)

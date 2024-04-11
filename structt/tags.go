@@ -35,7 +35,7 @@ type ColumnTag struct {
 	ForeignKeyReference string
 
 	// Column from which this struct was referenced (n:1 relations) in
-	// formatSchema.Table.Column.
+	// format Schema.Table.Column.
 	// If this field is present, all other fields are empty
 	PointedKeyReference string
 
