@@ -3,63 +3,68 @@ package ddl
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"testing"
 
 	"git.rpjosh.de/RPJosh/go-logger"
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/go-cmp/cmp"
+	goOra "github.com/sijms/go-ora/v2"
 )
 
 // TestGetTableSimple tests the construction of a Table struct
 // with all supported data types and fields
-func TestGetTableSimple(t *testing.T) {
-	db := ConnectToMariadb(t)
-	mDb := NewMariaDb(db)
+func TestGetTableSimpleOracle(t *testing.T) {
+	db := ConnectToOracle(t)
+	oDb := NewOracleDb(db)
 
 	// Create test table
 	tableName, err := createTable(db,
 		`
-		id 		INT(10) PRIMARY KEY NOT NULL AUTO_INCREMENT,
-		txt 	VARCHAR(100) DEFAULT 'Ich bins, der Tim!',
-		dte		DATETIME NOT NULL
-			COMMENT 'Hallo ihr da!\nZeilenumbrüche'
+		id 		NUMERIC(10,0) PRIMARY KEY NOT NULL,
+		txt 	VARCHAR2(100) DEFAULT 'Ich bins, der Tim!',
+		dte		DATE NOT NULL
 		`,
 	)
 	if err != nil {
 		t.Fatalf("Failed to create table: %s", err)
 	}
+	tableName = strings.ToUpper(tableName)
 	defer dropTable(db, tableName)
 
+	// Comment table
+	if err := addOracleComment(db, tableName, "DTE", `Hallo ihr da!\nZeilenumbrüche`); err != nil {
+		t.Fatalf("Failed to comment table: %s", err)
+	}
+
 	// Get columns
-	table, err := mDb.GetTable(RequireEnvString("MARIADB_DB", t), tableName)
+	table, err := oDb.GetTable(RequireEnvString("ORACLE_USER", t), tableName)
 	if err != nil {
 		t.Fatalf("Failed to get columns: %s", err)
 	}
 
 	expected := &Table{
-		Name:   tableName,
-		Schema: RequireEnvString("MARIADB_DB", t),
+		Name:   strings.ToUpper(tableName),
+		Schema: RequireEnvString("ORACLE_USER", t),
 	}
-	columns := []*MariadbColumn{
+	columns := []*OracleColumn{
 		{
 			Column: &Column{
-				Name:         "id",
+				Name:         "ID",
 				PrimaryKey:   true,
 				CanBeNull:    false,
 				Type:         IntType,
-				InternalType: "int(10)",
+				InternalType: "NUMBER",
 			},
-			AutoIncrement:  true,
 			DataTypeLenght: 10,
-			KeyType:        MariadbKeyPrimary,
+			Scale:          0,
 		},
 		{
 			Column: &Column{
-				Name:         "txt",
+				Name:         "TXT",
 				PrimaryKey:   false,
 				CanBeNull:    true,
 				Type:         StringType,
-				InternalType: "varchar(100)",
+				InternalType: "VARCHAR2",
 				DefaultValue: sql.NullString{
 					Valid:  true,
 					String: "Ich bins, der Tim!",
@@ -70,15 +75,15 @@ func TestGetTableSimple(t *testing.T) {
 		},
 		{
 			Column: &Column{
-				Name:         "dte",
+				Name:         "DTE",
 				PrimaryKey:   false,
 				CanBeNull:    false,
 				Type:         DateType,
-				InternalType: "datetime",
+				InternalType: "DATE",
 				Comment:      "Hallo ihr da!\nZeilenumbrüche",
 			},
 			AutoIncrement:  false,
-			DataTypeLenght: 0,
+			DataTypeLenght: 7,
 		},
 	}
 	for _, c := range columns {
@@ -88,20 +93,20 @@ func TestGetTableSimple(t *testing.T) {
 
 	// Compare struct
 	if diff := cmp.Diff(table, expected); diff != "" {
-		t.Errorf("TestGetTable() mismatch (-want +got):\n%s", diff)
+		t.Errorf("Mismatch of columns (-want +got):\n%s", diff)
 	}
 }
 
 // TestGetTableSimple tests the construction of a Table struct
 // that references another table
-func TestGetTableFK(t *testing.T) {
-	db := ConnectToMariadb(t)
-	mDb := NewMariaDb(db)
+func TestGetTableOracleFK(t *testing.T) {
+	db := ConnectToOracle(t)
+	mDb := NewOracleDb(db)
 
 	// Create table we reference to
 	referenceTableName, err := createTable(db, `
-		id_to_ref   INT(10) PRIMARY KEY NOT NULL AUTO_INCREMENT,
-		rand        VARCHAR(10) NOT NULL`,
+		id_to_ref   NUMBER(10,0) PRIMARY KEY NOT NULL,
+		rand        VARCHAR2(10) NOT NULL`,
 	)
 	if err != nil {
 		t.Fatalf("Failed to create table: %s", err)
@@ -110,8 +115,8 @@ func TestGetTableFK(t *testing.T) {
 
 	// Create table with reference
 	tableName, err := createTable(db, `
-		id 		 INT(10) PRIMARY KEY NOT NULL AUTO_INCREMENT,
-		other_id INT(10) NOT NULL,
+		id 		 NUMBER(10,0) PRIMARY KEY NOT NULL,
+		other_id NUMBER(10,0) NOT NULL,
 		CONSTRAINT fk_test_constraint_for_you FOREIGN KEY(other_id) REFERENCES `+referenceTableName+`(id_to_ref)
 	`)
 	if err != nil {
@@ -119,44 +124,41 @@ func TestGetTableFK(t *testing.T) {
 	}
 	defer dropTable(db, tableName)
 
-	table, err := mDb.GetTable(RequireEnvString("MARIADB_DB", t), tableName)
+	table, err := mDb.GetTable(RequireEnvString("ORACLE_USER", t), tableName)
 	if err != nil {
 		t.Fatalf("Failed to get columns: %s", err)
 	}
 
 	expected := &Table{
-		Name:   tableName,
-		Schema: RequireEnvString("MARIADB_DB", t),
+		Name:   strings.ToUpper(tableName),
+		Schema: RequireEnvString("ORACLE_USER", t),
 	}
-	columns := []*MariadbColumn{
+	columns := []*OracleColumn{
 		{
 			Column: &Column{
-				Name:         "id",
+				Name:         "ID",
 				PrimaryKey:   true,
 				CanBeNull:    false,
 				Type:         IntType,
-				InternalType: "int(10)",
+				InternalType: "NUMBER",
 			},
-			AutoIncrement:  true,
 			DataTypeLenght: 10,
-			KeyType:        MariadbKeyPrimary,
 		},
 		{
 			Column: &Column{
-				Name:         "other_id",
+				Name:         "OTHER_ID",
 				PrimaryKey:   false,
 				CanBeNull:    false,
 				Type:         IntType,
-				InternalType: "int(10)",
+				InternalType: "NUMBER",
 				ForeignKey:   true,
 				ForeignKeyColumn: ForeignColumn{
-					Name:   referenceTableName,
-					Schema: RequireEnvString("MARIADB_DB", t),
-					Column: "id_to_ref",
+					Name:   strings.ToUpper(referenceTableName),
+					Schema: RequireEnvString("ORACLE_USER", t),
+					Column: "ID_TO_REF",
 				},
 			},
 			DataTypeLenght: 10,
-			KeyType:        MariadbKeyMultipleIndex,
 		},
 	}
 	for _, c := range columns {
@@ -166,30 +168,32 @@ func TestGetTableFK(t *testing.T) {
 
 	// Compare struct
 	if diff := cmp.Diff(table, expected); diff != "" {
-		t.Errorf("TestGetTableFK() mismatch (-want +got):\n%s", diff)
+		t.Errorf("Mismatch (-want +got):\n%s", diff)
 	}
 
 }
 
 // TestGetTableSimple tests the selecting of multiple tables to a []Table array
-func TestGetTables(t *testing.T) {
-	db := ConnectToMariadb(t)
-	mDb := NewMariaDb(db)
+func TestGetTablesOracle(t *testing.T) {
+	db := ConnectToOracle(t)
+	mDb := NewOracleDb(db)
 
 	// Create two simple tables
-	tableName1, err := createTable(db, `idTab1 INT(10) NOT NULL`)
+	tableName1, err := createTable(db, `idTab1 NUMBER(10,0) NOT NULL`)
 	if err != nil {
 		t.Fatalf("Failed to create table: %s", err)
 	}
+	tableName1 = strings.ToUpper(tableName1)
 	defer dropTable(db, tableName1)
 
-	tableName2, err := createTable(db, `idTab2 INT(10) NOT NULL`)
+	tableName2, err := createTable(db, `idTab2 NUMBER(10,0) NOT NULL`)
 	if err != nil {
 		t.Fatalf("Failed to create table: %s", err)
 	}
+	tableName2 = strings.ToUpper(tableName2)
 	defer dropTable(db, tableName2)
 
-	tables, err := mDb.GetTables(RequireEnvString("MARIADB_DB", t))
+	tables, err := mDb.GetTables(RequireEnvString("ORACLE_USER", t))
 	if err != nil {
 		t.Fatalf("Failed to get tables: %s", err)
 	}
@@ -203,15 +207,15 @@ func TestGetTables(t *testing.T) {
 			// Compare table
 			expected := &Table{
 				Name:   tt.Name,
-				Schema: RequireEnvString("MARIADB_DB", t),
+				Schema: RequireEnvString("ORACLE_USER", t),
 			}
-			columns := []*MariadbColumn{
+			columns := []*OracleColumn{
 				{
 					Column: &Column{
-						Name:         "idTab1",
+						Name:         "IDTAB1",
 						CanBeNull:    false,
 						Type:         IntType,
-						InternalType: "int(10)",
+						InternalType: "NUMBER",
 					},
 					DataTypeLenght: 10,
 				},
@@ -233,15 +237,15 @@ func TestGetTables(t *testing.T) {
 			// Compare table
 			expected := &Table{
 				Name:   tt.Name,
-				Schema: RequireEnvString("MARIADB_DB", t),
+				Schema: RequireEnvString("ORACLE_USER", t),
 			}
-			columns := []*MariadbColumn{
+			columns := []*OracleColumn{
 				{
 					Column: &Column{
-						Name:         "idTab2",
+						Name:         "IDTAB2",
 						CanBeNull:    false,
 						Type:         IntType,
-						InternalType: "int(10)",
+						InternalType: "NUMBER",
 					},
 					DataTypeLenght: 10,
 				},
@@ -253,7 +257,7 @@ func TestGetTables(t *testing.T) {
 
 			// Compare struct
 			if diff := cmp.Diff(tt, expected); diff != "" {
-				t.Errorf("TestGetTables() mismatch of tab2: (-want +got):\n%s", diff)
+				t.Errorf("Mismatch of tab2: (-want +got):\n%s", diff)
 			}
 		}
 	}
@@ -267,32 +271,30 @@ func TestGetTables(t *testing.T) {
 	}
 }
 
-func ConnectToMariadb(t *testing.T) *sql.DB {
-	db, err := sql.Open("mysql", fmt.Sprintf(
-		"%s:%s@tcp(%s)/%s",
-		RequireEnvString("MARIADB_USER", t), RequireEnvString("MARIADB_PASSWORD", t), RequireEnvString("MARIADB_ADDRESS", t), RequireEnvString("MARIADB_DB", t),
-	))
+func addOracleComment(db *sql.DB, tbl string, column string, comment string) error {
+	comment = strings.ReplaceAll(comment, "\n", `'||char(10)||'`)
+	sql := fmt.Sprintf("COMMENT ON COLUMN \"%s\".\"%s\" IS '%s'", tbl, column, comment)
+	_, err := db.Exec(sql)
+	if err != nil {
+		logger.Debug("Statement for create comment:\n%s", sql)
+	}
+	return err
+}
+
+func ConnectToOracle(t *testing.T) *sql.DB {
+	conString := goOra.BuildUrl(
+		RequireEnvString("ORACLE_SERVER", t),
+		RequireEnvInt("ORACLE_PORT", t),
+		RequireEnvString("ORACLE_SERVICE", t),
+		RequireEnvString("ORACLE_USER", t),
+		RequireEnvString("ORACLE_PASSWORD", t),
+		map[string]string{},
+	)
+
+	db, err := sql.Open("oracle", conString)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to open DB connection: %s", err))
 	}
 
 	return db
-}
-
-// createTable creates a table with the provided column configuration
-// in statement and returns the created table name
-func createTable(db *sql.DB, statement string) (string, error) {
-	name, _ := GenerateRandomString(8)
-	name = "ddl_test_" + name
-	sql := fmt.Sprintf("CREATE TABLE %s (%s)", name, statement)
-
-	_, err := db.Exec(sql)
-	if err != nil {
-		logger.Debug("Create statement: %s", sql)
-	}
-	return name, err
-}
-func dropTable(db *sql.DB, tableName string) error {
-	_, err := db.Exec("DROP TABLE " + tableName)
-	return err
 }

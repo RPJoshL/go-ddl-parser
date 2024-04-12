@@ -11,5 +11,6 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/sijms/go-ora/v2 v2.8.11 // indirect
 	golang.org/x/sys v0.19.0 // indirect
 )

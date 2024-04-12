@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"math/big"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -14,9 +15,25 @@ func RequireEnvString(name string, t *testing.T) string {
 	if strVal, isSet := os.LookupEnv(name); isSet {
 		return strVal
 	} else {
-		t.Errorf("Required environment variable %q not set", name)
+		t.Fatalf("Required environment variable %q not set", name)
 		return ""
 	}
+}
+
+func RequireEnvInt(name string, t *testing.T) int {
+	if strVal, isSet := os.LookupEnv(name); isSet {
+		if intVal, err := strconv.Atoi(strVal); err != nil {
+			t.Fatalf("Invalid number value given for the environment variable %q: %s", name, strVal)
+		} else if intVal < 1 {
+			t.Fatalf("Environment variable %q has to be greater than 0", name)
+		} else {
+			return intVal
+		}
+	} else {
+		t.Fatalf("Required environment variable %q not set", name)
+	}
+
+	return 0
 }
 
 func DumpStruct(a ...interface{}) string {

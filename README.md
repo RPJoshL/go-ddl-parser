@@ -5,3 +5,4 @@ DDL-Parser is a simple go module to parse all table columns from a running datab
 The following SQL databases are supported and tested:
 
 - MariaDB *10.6*
+- Oracle *21*
