@@ -262,7 +262,7 @@ func TestRelationshipOneToMany(t *testing.T) {
 	expectedTag := &ColumnTag{
 		PointedKeyReference: "here_is_me.workout_details.workout_id",
 	}
-	expected := fmt.Sprintf("\tWorkoutDetails []*WorkoutDetailsTab `%s:\"%s\"`\n", ColumnTagId, expectedTag.ToTag())
+	expected := fmt.Sprintf("\tWorkoutDetails []WorkoutDetailsTab `%s:\"%s\"`\n", ColumnTagId, expectedTag.ToTag())
 
 	// Compare structs
 	if diff := cmp.Diff(

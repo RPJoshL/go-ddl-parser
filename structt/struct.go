@@ -405,7 +405,7 @@ func (c *constructor) getOneToMany(tblConfig *TableConfig, tbl *ddl.Table) (rtc 
 				tag := &ColumnTag{
 					PointedKeyReference: t.Schema + "." + t.Name + "." + c.Name,
 				}
-				rtc += fmt.Sprintf("\t%s []*%s `%s:\"%s\"`\n", GetFieldName(t.Name), tblName, ColumnTagId, tag.ToTag())
+				rtc += fmt.Sprintf("\t%s []%s `%s:\"%s\"`\n", GetFieldName(t.Name), tblName, ColumnTagId, tag.ToTag())
 
 				// We also add the full reference to the column inside the string value.
 				fieldNameRoot := GetFieldName(t.Name)

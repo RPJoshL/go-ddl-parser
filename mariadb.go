@@ -129,7 +129,7 @@ func (s *Mariadb) GetTable(schema, name string) (*Table, error) {
 
 	// We got no data
 	if count == 0 {
-		return nil, fmt.Errorf("schema.table was not found")
+		return nil, fmt.Errorf("%s.%s was not found", schema, name)
 	}
 
 	return table, nil

@@ -86,8 +86,14 @@ func GetColumnTag(col *ddl.Column) *ColumnTag {
 
 // ToTag transforms this columnTag to a string that can be applied as
 // struct tag
-func (c *ColumnTag) ToTag() string {
-	rtc := "Column:" + c.Name
+func (c *ColumnTag) ToTag() (rtc string) {
+
+	// PointedKeyReference doesn't contain column name
+	if c.PointedKeyReference == "" {
+		rtc = "Column:" + c.Name
+	} else {
+		rtc = "PointedForeignKey:" + c.PointedKeyReference
+	}
 
 	if c.AutoIncrement {
 		rtc += ",AutoIncrement"
@@ -97,9 +103,6 @@ func (c *ColumnTag) ToTag() string {
 	}
 	if c.ForeignKeyReference != "" {
 		rtc += ",ForeignKey:" + c.ForeignKeyReference
-	}
-	if c.PointedKeyReference != "" {
-		rtc += ",PointedForeignKey:" + c.PointedKeyReference
 	}
 
 	return rtc
@@ -171,9 +174,10 @@ func FromMetadataTag(tag string) *MetadataTag {
 			point := strings.Index(val, ":")
 			key := val[0:point]
 
-			// No value specified
-			if point+1 == len(val) {
+			// No value specified (schema is optional)
+			if point+1 == len(val) && key != "Schema" {
 				logger.Warning("No value specified for metadata tag %q", val)
+				logger.Debug("Tag value for mising metadata: %q", val)
 				continue
 			}
 			value := val[point+1:]
