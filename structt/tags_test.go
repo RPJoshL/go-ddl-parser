@@ -27,7 +27,7 @@ func TestColumnTagTransformNegative(t *testing.T) {
 func TestColumnTagTransformPositive(t *testing.T) {
 	// Base struct to test
 	baseTag := &ColumnTag{
-		Name:                "Thats_my_Special_22tag",
+		Name:                "",
 		IsPrimaryKey:        true,
 		ForeignKeyReference: "workout.users.id",
 		PointedKeyReference: "hello",
