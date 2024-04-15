@@ -41,6 +41,9 @@ type ColumnTag struct {
 
 	// Mariadb: weather this field has the property "auto_increment"
 	AutoIncrement bool
+
+	// Weather this column has a default value
+	HasDefaultValue bool
 }
 
 // Identifier of the struct tag for "MetadataTag"
@@ -81,6 +84,9 @@ func GetColumnTag(col *ddl.Column) *ColumnTag {
 		rtc.AutoIncrement = mariaDb.AutoIncrement
 	}
 
+	// Add some boolean flags
+	rtc.HasDefaultValue = col.DefaultValue.Valid
+
 	return rtc
 }
 
@@ -104,6 +110,9 @@ func (c *ColumnTag) ToTag() (rtc string) {
 	if c.ForeignKeyReference != "" {
 		rtc += ",ForeignKey:" + c.ForeignKeyReference
 	}
+	if c.HasDefaultValue {
+		rtc += ",DefaultValue"
+	}
 
 	return rtc
 }
@@ -122,6 +131,8 @@ func FromColumnTag(tag string) *ColumnTag {
 			rtc.AutoIncrement = true
 		case "PrimaryKey":
 			rtc.IsPrimaryKey = true
+		case "DefaultValue":
+			rtc.HasDefaultValue = true
 		}
 
 		// Key-value pairs

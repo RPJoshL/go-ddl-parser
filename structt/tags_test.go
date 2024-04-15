@@ -32,6 +32,7 @@ func TestColumnTagTransformPositive(t *testing.T) {
 		ForeignKeyReference: "workout.users.id",
 		PointedKeyReference: "hello",
 		AutoIncrement:       true,
+		HasDefaultValue:     true,
 	}
 
 	// Transform to string
