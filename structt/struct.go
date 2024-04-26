@@ -457,7 +457,7 @@ func (c *constructor) patchImports(existingContent string, imports map[string]bo
 	}
 
 	// Regex to find an import statement
-	reg := regexp.MustCompile(`"([^"]+)"`)
+	importRegex := regexp.MustCompile(`"([^"]+)"`)
 
 	var importStart, importEnd int
 	importFound := true
@@ -481,7 +481,7 @@ func (c *constructor) patchImports(existingContent string, imports map[string]bo
 					continue
 				} else {
 					// Extract imported package
-					matches := reg.FindStringSubmatch(lineContent)
+					matches := importRegex.FindStringSubmatch(lineContent)
 					if len(matches) >= 2 {
 						// We can only import ONE package without ()
 						if _, exists := imports[matches[1]]; !exists {
@@ -505,7 +505,13 @@ func (c *constructor) patchImports(existingContent string, imports map[string]bo
 			break
 		}
 
-		matches := reg.FindStringSubmatch(lineContent)
+		// Ignore any empty import lines. It's used as a seperator between std packages
+		// and "external" modules
+		if lineContent == "" {
+			continue
+		}
+
+		matches := importRegex.FindStringSubmatch(lineContent)
 		if len(matches) >= 2 {
 			if _, exists := imports[matches[1]]; !exists {
 				imports[matches[1]] = true

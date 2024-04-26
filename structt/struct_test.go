@@ -328,6 +328,8 @@ package olaf
 import (
 	"time"
 	"database/sql"
+
+	"git.anything"
 )
 
 type SomeRandomTab struct {
@@ -349,6 +351,7 @@ package olaf
 
 import (
 	"database/sql"
+	"git.anything"
 	"sql.NullString"
 	"time"
 )
