@@ -169,7 +169,7 @@ func (s *Mariadb) GetTables(schema string) ([]*Table, error) {
 
 func (s *Mariadb) GetDataType(internalType string) DataType {
 	switch strings.ToLower(internalType) {
-	case "varchar":
+	case "varchar", "text", "tinytext", "mediumtext", "longtext":
 		return StringType
 	case "int", "tinyint", "smallint", "bigint":
 		return IntType
