@@ -10,6 +10,7 @@ const (
 	IntType     DataType = "Integer"
 	DoubleType  DataType = "Double"
 	DateType    DataType = "Date"
+	GeoType     DataType = "Geo"
 	UnknownType DataType = "Unknown"
 )
 

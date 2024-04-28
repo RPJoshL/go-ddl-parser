@@ -16,6 +16,9 @@ import (
 	"git.rpjosh.de/RPJosh/go-logger"
 )
 
+// The name of the root package
+const PackageName = "git.rpjosh.de/RPJosh/go-ddl-parser"
+
 // StructConfig contains options used to customize the behaviour of the conversion
 // from a database column to a struct
 type StructConfig struct {
@@ -321,6 +324,8 @@ func (c *constructor) getDataType(column *ddl.Column, tblConfig *TableConfig, _ 
 			return "sql.NullFloat64", "database/sql"
 		case ddl.DateType:
 			return "sql.NullTime", "database/sql"
+		case ddl.GeoType:
+			return "ddl.Location", PackageName
 		}
 	}
 
@@ -333,6 +338,8 @@ func (c *constructor) getDataType(column *ddl.Column, tblConfig *TableConfig, _ 
 		return "float64", ""
 	case ddl.DateType:
 		return "time.Time", "time"
+	case ddl.GeoType:
+		return "ddl.Location", PackageName
 	}
 
 	return "any", ""
