@@ -1,6 +1,7 @@
 package structt
 
 import (
+	"database/sql"
 	"fmt"
 	"regexp"
 	"strings"
@@ -411,6 +412,74 @@ func TestPatchFilePatchSelf(t *testing.T) {
 		t.Logf("Expected:\n%s", expected)
 		t.Logf("Actual:\n%s", goFile)
 	}
+}
+
+func TestNullableConfig(t *testing.T) {
+	c := &constructor{
+		config: &StructConfig{
+			NullConfig: NullConfig{
+				Disable: true,
+			},
+		},
+	}
+
+	table := &ddl.Table{
+		Name:   "my_table_name",
+		Schema: "here_is_me",
+		Columns: []*ddl.Column{
+			{
+				Name:      "id",
+				Type:      ddl.IntType,
+				CanBeNull: true,
+			},
+		},
+	}
+	tableConfig := &TableConfig{
+		PackageName: "olaf",
+		Suffix:      "Tab",
+	}
+
+	expected :=
+		`package olaf
+%s
+
+type MyTableNameTab struct {
+	Id %s ` + getStructTag(table.Columns[0]) + `
+	` + MetadataFieldName + ` any ` + getMetadataTag(table) + `
+}
+// MyTableNameTab
+const (
+	MyTableNameTab_Id string = "Id|here_is_me.my_table_name.id"
+)
+`
+	goFile := c.getGoFile("", table, tableConfig)
+
+	// Compare structs
+	if diff := cmp.Diff(
+		replaceWhitespaces(fmt.Sprintf(expected, "", "int")),
+		replaceWhitespaces(goFile),
+	); diff != "" {
+		t.Errorf("Mismatch of disabled null types (-want +got):\n%s", diff)
+		t.Logf("Expected:\n%s", expected)
+		t.Logf("Actual:\n%s", goFile)
+	}
+
+	// ==== Test with custom data type ==== //
+	c.config.NullConfig = NullConfig{
+		Package: "git.rpjosh.de/MyCustom",
+		Prefix:  sql.NullString{Valid: true, String: "olaf.Null"},
+	}
+	goFile = c.getGoFile("", table, tableConfig)
+
+	if diff := cmp.Diff(
+		replaceWhitespaces(fmt.Sprintf(expected, "import (\n\t\"git.rpjosh.de/MyCustom\"\n)", "olaf.NullInt64")),
+		replaceWhitespaces(goFile),
+	); diff != "" {
+		t.Errorf("Mismatch of custom null types (-want +got):\n%s", diff)
+		t.Logf("Expected:\n%s", expected)
+		t.Logf("Actual:\n%s", goFile)
+	}
+
 }
 
 // replaceWhitespaces replaces any space, newline or a squecne of

@@ -1,6 +1,7 @@
 package structt
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"os"
@@ -37,6 +38,9 @@ type StructConfig struct {
 	// The key of this map is either the table name (for any schema)
 	// or a combination of "schema.tableName"
 	Tableconfig map[string]*TableConfig `yaml:"tableConfig"`
+
+	// Configuration of how to handle nullable columns
+	NullConfig NullConfig
 }
 
 // TableConfig contains options for a specific table
@@ -64,6 +68,21 @@ type TableConfig struct {
 
 	// Sufix to add to the struct name. Add <empty> for no string and override of the default behaviour
 	Suffix string `yaml:"suffix"`
+}
+
+// NullConfig configures how to transform nullable columns into a go struct
+type NullConfig struct {
+
+	// Disable the use of nullable datatypes
+	Disable bool
+
+	// Name of the package to import the types from.
+	// Defaulting to [database/sql]
+	Package string
+
+	// Prefix to use in front of name like "String" or "Int64".
+	// Defaulting to "sql.Null"
+	Prefix sql.NullString
 }
 
 type constructor struct {
@@ -314,16 +333,27 @@ func (c *constructor) getDataType(column *ddl.Column, tblConfig *TableConfig, _ 
 	}
 
 	// Try to use sql null strings
-	if column.CanBeNull {
+	if column.CanBeNull && !c.config.NullConfig.Disable {
+
+		// Get nullable data types
+		prefix := "sql.Null"
+		imp := "database/sql"
+		if c.config.NullConfig.Package != "" {
+			imp = c.config.NullConfig.Package
+		}
+		if c.config.NullConfig.Prefix.Valid {
+			prefix = c.config.NullConfig.Prefix.String
+		}
+
 		switch column.Type {
 		case ddl.StringType:
-			return "sql.NullString", "database/sql"
+			return prefix + "String", imp
 		case ddl.IntType:
-			return "sql.NullInt64", "database/sql"
+			return prefix + "Int64", imp
 		case ddl.DoubleType:
-			return "sql.NullFloat64", "database/sql"
+			return prefix + "Float64", imp
 		case ddl.DateType:
-			return "sql.NullTime", "database/sql"
+			return prefix + "Time", imp
 		case ddl.GeoType:
 			return "ddl.Location", PackageName
 		}
