@@ -460,8 +460,8 @@ const (
 		replaceWhitespaces(goFile),
 	); diff != "" {
 		t.Errorf("Mismatch of disabled null types (-want +got):\n%s", diff)
-		t.Logf("Expected:\n%s", expected)
-		t.Logf("Actual:\n%s", goFile)
+		// t.Logf("Expected:\n%s", expected)
+		// t.Logf("Actual:\n%s", goFile)
 	}
 
 	// ==== Test with custom data type ==== //
@@ -476,8 +476,25 @@ const (
 		replaceWhitespaces(goFile),
 	); diff != "" {
 		t.Errorf("Mismatch of custom null types (-want +got):\n%s", diff)
-		t.Logf("Expected:\n%s", expected)
-		t.Logf("Actual:\n%s", goFile)
+		// t.Logf("Expected:\n%s", expected)
+		// t.Logf("Actual:\n%s", goFile)
+	}
+
+	// ==== Test custom function ==== //
+	c.config.NullConfig = NullConfig{
+		Custom: func(typ ddl.DataType, defaultName string) (typeName string, imp string) {
+			return "myType", "myImport"
+		},
+	}
+	goFile = c.getGoFile("", table, tableConfig)
+
+	if diff := cmp.Diff(
+		replaceWhitespaces(fmt.Sprintf(expected, "import (\n\t\"myImport\"\n)", "myType")),
+		replaceWhitespaces(goFile),
+	); diff != "" {
+		t.Errorf("Mismatch of custom converter function (-want +got):\n%s", diff)
+		// t.Logf("Expected:\n%s", expected)
+		// t.Logf("Actual:\n%s", goFile)
 	}
 
 }

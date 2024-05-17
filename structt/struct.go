@@ -80,9 +80,12 @@ type NullConfig struct {
 	// Defaulting to [database/sql]
 	Package string
 
-	// Prefix to use in front of name like "String" or "Int64".
+	// Prefix to use in front of a type name like "String" or "Int64".
 	// Defaulting to "sql.Null"
 	Prefix sql.NullString
+
+	// Custom function to get the import name and the type name from
+	Custom func(typ ddl.DataType, defaultName string) (typeName, imp string)
 }
 
 type constructor struct {
@@ -345,18 +348,26 @@ func (c *constructor) getDataType(column *ddl.Column, tblConfig *TableConfig, _ 
 			prefix = c.config.NullConfig.Prefix.String
 		}
 
+		// The default data type name
+		typeName := ""
 		switch column.Type {
 		case ddl.StringType:
-			return prefix + "String", imp
+			typeName = "String"
 		case ddl.IntType:
-			return prefix + "Int64", imp
+			typeName = "Int64"
 		case ddl.DoubleType:
-			return prefix + "Float64", imp
+			typeName = "Float64"
 		case ddl.DateType:
-			return prefix + "Time", imp
+			typeName = "Time"
 		case ddl.GeoType:
 			return "ddl.Location", PackageName
 		}
+
+		// Null types
+		if c.config.NullConfig.Custom != nil {
+			return c.config.NullConfig.Custom(column.Type, typeName)
+		}
+		return prefix + typeName, imp
 	}
 
 	switch column.Type {
