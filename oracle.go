@@ -66,7 +66,7 @@ func (s *OracleDb) GetTable(schema, name string) (*Table, error) {
 			col.DATA_DEFAULT,
 			col.NULLABLE,
 			col.DATA_TYPE,
-			COALESCE(col.DATA_PRECISION, col.DATA_LENGTH, 0), COALESCE(col.DATA_SCALE, 0),
+			COALESCE(col.DATA_PRECISION, col.DATA_LENGTH, 0), col.DATA_SCALE,
 			col.IDENTITY_COLUMN, con.CONSTRAINT_TYPE, 
 			coms.COMMENTS,
 			-- Foreign key data
@@ -94,16 +94,28 @@ func (s *OracleDb) GetTable(schema, name string) (*Table, error) {
 	for rows.Next() {
 		var tableSchema, tableName, isNullable, identity string
 		var fkOwner, fkTable, fkColumn, keyType, comment sql.NullString
+		var scale sql.NullInt64
 		column := s.newColumn()
 
 		if err := rows.Scan(
 			&tableSchema, &tableName,
 			&column.Name, &column.DefaultValue, &isNullable,
-			&column.InternalType, &column.DataTypeLenght, &column.Scale,
+			&column.InternalType, &column.DataTypeLenght, &scale,
 			&identity, &keyType, &comment,
 			&fkOwner, &fkTable, &fkColumn,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %s", err)
+		}
+
+		// Set scales
+		if scale.Valid {
+			column.Scale = int(scale.Int64)
+		} else if column.InternalType == "NUMBER" {
+			// If no scale is available for a number type, we cannot determine
+			// safe if an int or float should be used.
+			// Because this scenario only occures when selecting data from
+			// a view, we can safely use a float
+			column.Scale = 64
 		}
 
 		// Apply data
