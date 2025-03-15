@@ -9,18 +9,22 @@ import (
 
 // Location is a database type that stores a geographic
 // point on the earth with a longitude and latitude.
-// It can currently only used for Mariadb!
+// It can currently only be used for Mariadb
 type Location struct {
-	Longitude float64
-	Latitude  float64
+	Longitude float64 `json:"longitude"`
+	Latitude  float64 `json:"latitude"`
 }
 
 // Scan handles the scanning of the custom location type
 // for a MariaDb datbase
 func (g *Location) Scan(src interface{}) error {
-	switch src.(type) {
+	if src == nil {
+		g = nil
+		return nil
+	}
+
+	switch b := src.(type) {
 	case []byte:
-		var b = src.([]byte)
 		if len(b) != 25 {
 			return fmt.Errorf("expected []bytes with length 25, got %d", len(b))
 		}
