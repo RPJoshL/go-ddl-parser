@@ -1,7 +1,7 @@
 filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
 filippo.io/edwards25519 v1.1.0/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
-git.rpjosh.de/RPJosh/go-logger v1.3.2 h1:y8qFEBYeJzLLi6H7CpHHGb2pB0IyfHSG6m6o8TxL1uo=
-git.rpjosh.de/RPJosh/go-logger v1.3.2/go.mod h1:iD3KaRyOIkYMj7E+xFMn5uDVCzW1lSJQopz1Fl1+BSM=
+github.com/RPJoshL/go-logger v1.3.5 h1:WKfoZxXSEnfAsS/hEitlEzUf0tRXdYwE9q9nyKlZDnU=
+github.com/RPJoshL/go-logger v1.3.5/go.mod h1:HeBwqn1/hRl0nHd5TKpwG5CaSHGVTEZ0zcO0aYpz1uE=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/go-sql-driver/mysql v1.8.1 h1:LedoTUt/eveggdHS9qUFC1EFSa8bU2+1pZjSRpvNJ1Y=

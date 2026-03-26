@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"git.rpjosh.de/RPJosh/go-ddl-parser"
+	"github.com/RPJoshL/go-ddl-parser"
 
-	"git.rpjosh.de/RPJosh/go-logger"
+	"github.com/RPJoshL/go-logger"
 )
 
 // Identifier of the struct tag for "ColumnTag"

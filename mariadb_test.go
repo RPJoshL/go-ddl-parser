@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"git.rpjosh.de/RPJosh/go-logger"
+	"github.com/RPJoshL/go-logger"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/go-cmp/cmp"
 )

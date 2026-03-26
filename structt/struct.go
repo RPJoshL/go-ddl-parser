@@ -12,13 +12,13 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"git.rpjosh.de/RPJosh/go-ddl-parser"
+	"github.com/RPJoshL/go-ddl-parser"
 
-	"git.rpjosh.de/RPJosh/go-logger"
+	"github.com/RPJoshL/go-logger"
 )
 
 // The name of the root package
-const PackageName = "git.rpjosh.de/RPJosh/go-ddl-parser"
+const PackageName = "github.com/RPJoshL/go-ddl-parser"
 
 // StructConfig contains options used to customize the behaviour of the conversion
 // from a database column to a struct

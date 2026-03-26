@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"git.rpjosh.de/RPJosh/go-logger"
+	"github.com/RPJoshL/go-logger"
 	"github.com/google/go-cmp/cmp"
 	goOra "github.com/sijms/go-ora/v2"
 )

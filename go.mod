@@ -1,9 +1,9 @@
-module git.rpjosh.de/RPJosh/go-ddl-parser
+module github.com/RPJoshL/go-ddl-parser
 
 go 1.22.1
 
 require (
-	git.rpjosh.de/RPJosh/go-logger v1.3.2
+	github.com/RPJoshL/go-logger v1.3.5
 	github.com/davecgh/go-spew v1.1.1
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/google/go-cmp v0.6.0
