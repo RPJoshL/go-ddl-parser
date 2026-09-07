@@ -356,9 +356,11 @@ func (c *constructor) getDataType(column *ddl.Column, tblConfig *TableConfig, _ 
 		case ddl.IntType:
 			typeName = "Int64"
 		case ddl.DoubleType:
-			typeName = "Float64"
+			typeName = "Float"
 		case ddl.DateType:
 			typeName = "Time"
+		case ddl.BytesType:
+			return "[]byte", ""
 		case ddl.GeoType:
 			return "ddl.Location", PackageName
 		}
@@ -379,6 +381,8 @@ func (c *constructor) getDataType(column *ddl.Column, tblConfig *TableConfig, _ 
 		return "float64", ""
 	case ddl.DateType:
 		return "time.Time", "time"
+	case ddl.BytesType:
+		return "[]byte", ""
 	case ddl.GeoType:
 		return "ddl.Location", PackageName
 	}

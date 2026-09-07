@@ -179,6 +179,8 @@ func (s *Mariadb) GetDataType(internalType string) DataType {
 		return DateType
 	case "point":
 		return GeoType
+	case "tinyblob", "blob", "mediumblob", "longblob":
+		return BytesType
 	default:
 		logger.Warning("MariaDb: received unknown data type column: %s", internalType)
 		return UnknownType
